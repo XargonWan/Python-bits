@@ -1,29 +1,29 @@
 import random
 
-# BUG: the ants are finishing the food in the first day, check needed
-
 # TODO: add food availability: normal, scarse, starvation
 # TODO: add casualties (humans, predators, weather)
 
 id = 0 # ant's ID starts from 0 and goes on
 colony = [] # list of ants in the colony
-workers = 0
-queens = 0
-soldiers = 0
-males = 0
-females = 0
+tot_queens = 0
+tot_workers = 0
+tot_soldiers = 0
+tot_males = 0
+tot_females = 0
 deadcounts = 0
-queens = 0
-# maleska = True # is there males? 'ka' is the question particle in japanese, in the beginning is true even if we got only the queen because we caount that the queen is layin the eggs
+actual_queen = ""
+
+# "Actual" counters
+act_workers = 0
+act_soldiers = 0
+act_queens = 0 # this is more for debug purposes
+act_males = 0
+act_females = 0
 
 # OPTIONS
 food = 10 # starting food
 max_eggs = 100 # max eggs layable per day
 season = 'spring' # starting season
-
-# "Actual" counters
-act_workers = 0
-act_soldiers = 0
 
 
 class ant: 
@@ -33,54 +33,137 @@ class ant:
         id += 1
         self.life = random.randint(20,40)  # ant's lifespan in days
         self.gender = random.choice('m' 'f') # ant's gender, M = male, F = female
-        self.starving = 0 # how many days without eating?              
+        self.starving = 0 # how many days without eating?
     def eat(self):
         global food
         if food >= 1:
                 food -= 1
+                self.starving = 0
         else:
                 self.starving += 1
 
-
 class queen(ant):
         def __init__(self):
-                global queens
+                global tot_queens
+                global act_queens
+                global tot_females
+                global act_females
+                global actual_queen
                 super().__init__()
                 self.life = random.randint(1095,1460) # quenn's lifespan is longer
                 self.gender = 'f' # queens are only female
                 self.type = 'queen'
-                queens += 1
+                tot_females += 1
+                act_females += 1
+                tot_queens += 1
+                act_queens += 1
+                actual_queen = self
+                self.ate_today = False
+
+        def eat(self):  # for the queen we need a special eat function as she eats more times in a day
+                global food
+                if food >= 1:
+                        food -= 1
+                        self.starving = 0
+                        self.ate_today = True
+                elif self.ate_today == False:
+                        self.starving += 1
+                        
+
+        def die(self):
+                global colony
+                global act_queens
+                global actual_queen
+                global deadcounts
+                deadcounts += 1
+                actual_queen = ""
+                act_queens -= 1
+                colony.remove(self)
+                #print(f'The queen is dead today, long live the new queen!') #DEBUG
+                
 
 class soldier(ant):
         def __init__(self):
+                global tot_soldiers
+                global tot_males
+                global tot_females
+                global act_soldiers
+                global act_females
+                global act_males
                 super().__init__()
                 self.type = 'soldier'
+                tot_soldiers += 1
+                act_soldiers += 1
+                if self.gender == 'm':
+                        tot_males += 1
+                        act_males += 1
+                else:
+                        tot_females += 1
+                        act_females += 1
+        def die(self):
+                global act_soldiers
+                global colony
+                global act_females
+                global act_males
+                global deadcounts
+                deadcounts += 1
+                colony.remove(self)
+                act_soldiers -= 1
+                if self.gender == 'm':
+                        act_males += 1
+                else:
+                        act_females += 1               
 
 class worker(ant):
         def __init__(self):
                 super().__init__()
-                self.gender = 'f' # workers are only female
+                global tot_workers
+                global tot_females
+                global act_workers
+                global act_females
+                self.gender = 'f' # tot_workers are only female
                 self.type = 'worker'
+                tot_workers += 1
+                act_workers += 1
+                tot_females += 1
+                act_females += 1
+        def die(self):
+                global act_workers
+                global colony
+                global act_females
+                global deadcounts
+                deadcounts += 1
+                colony.remove(self)
+                act_workers -= 1
+                act_females -= 1
+
 
 def reproduce():
         global food
-        global act_workers
-        global act_soldiers
-        if any(isinstance(ant, queen) for ant in colony): # if I got a queen in my colony
-                if random.randint(1,100) <= 70: # let's cast a percentage and see which type of ant is to be born
-                        colony.append(worker())
-                        act_workers += 1
-                        for ant in colony:
-                                if ant.type == 'queen':
-                                        actual_queen = ant
+        global actual_queen
+        global colony
+        global max_eggs
+        if not any(isinstance(ant, queen) for ant in colony):
+                # if the queen is dead and we have enough food we grow a new queen and we feed her
+                if food >= 1:
+                        colony.append(queen())
+                        #for ant in colony:
+                        #        if ant.type == 'queen':
+                        #                actual_queen = ant
                         actual_queen.eat()
-                else:
-                        colony.append(soldier())
-                        act_soldiers += 1
-                        for ant in colony:
-                                if ant.type == 'queen':
-                                        actual_queen = ant
-                        actual_queen.eat()
+        elif season != 'winter' and food >= len(colony)-1: #if it's not winter and we got enough food, reproduce!
+                i = 1
+                #print(f'DEBUG: Giorno {day}, non è inverno e abbiamo {food} cibo, i={i}')
+                while i <= (max_eggs - len(colony)-1):    # we want to make sure that we don't consume tomorrow's food
+                        if random.randint(1,100) <= 70 or not any(isinstance(ant, worker) for ant in colony): # let's cast a percentage and see which type of ant is to be born
+                                colony.append(worker())
+                                actual_queen.eat()
+                                #print(f'Creo worker, cibo {food}, max eggs {max_eggs}, i={i}')
+                        else:
+                                colony.append(soldier())
+                                actual_queen.eat()
+                                #print(f'Creo soldier, cibo {food}, max eggs {max_eggs}, i={i}')
+                        i += 1
 
 
 print ("Welcome to your ant colony.")
@@ -89,10 +172,21 @@ day = 1 # we start from the day number 1
 daycount = 0 # initializing counter fos seasons
 colony.append(queen())
 
+# DEBUG Lines
+#print (f'\nDEBUG: Simulation started')
+#print (f'You have {len(colony)} ants:')
+#print (f'{act_workers} workers.')
+#print (f'{act_soldiers} soldiers.')
+#print (f'You have {food} food units.')
+#print (f'{deadcounts} ants died since the first day.')
+# END DEBUG Lines
+
 while day <= total_days:
 
         # it's a new day
         daycount += 1
+
+        print (f'\nDEBUG: Day {day} resume:')
 
         # if there are no more ants the colony is over
         if len(colony) <= 0: 
@@ -114,22 +208,18 @@ while day <= total_days:
         # now let's check the status of all the ants of the colony        
         for this_ant in colony:
 
-                # death for starving
-                if this_ant.starving >= 15:
-                        colony.remove(this_ant) # if ant has was starving for 15 days or more will die
-                        if this_ant.type == 'worker':
-                                act_workers -= 1
-                        elif this_ant.type == 'soldier':
-                                act_soldiers -= 1
+                #DEBUG
+                #if this_ant.type == 'queen':
+                #        print(f'Queen starving: {this_ant.starving}, life: {this_ant.life} HP')
+                #DEBUG
                 
-                # death for aging
-                if this_ant.life == 0:
-                        colony.remove(this_ant) # if ant has no more days to live, kill the ant, RIP
-                        deadcounts += 1
+                # check if this ant is still alive
+                if this_ant.starving >= 15 or this_ant.life == 0:
+                        this_ant.die()
 
-                # workers will be working, ecept in winter                
+                # tot_workers will be working, ecept in winter                
                 if this_ant.type == "worker" and season != 'winter':
-                        food += 2
+                        food += random.randint(0,3)
 
                 # daily meal        
                 this_ant.eat()
@@ -137,54 +227,27 @@ while day <= total_days:
                 # new day, one less to live
                 this_ant.life -= 1
 
-        # Is the queen dead?
-        if not any(isinstance(ant, queen) for ant in colony):
-                # if the queen is dead and we have enough food we grow a new queen and we feed her
-                if food >= 1:
-                        colony.append(queen())
-                        for ant in colony:
-                                if ant.type == 'queen':
-                                        actual_queen = ant
-                        actual_queen.eat()
+        reproduce()
 
+        if total_days <= 20:
+                print (f'You have a queen and {len(colony)} ants:')
+                print (f'{act_workers} workers.')
+                print (f'{act_soldiers} soldiers.')
+                print (f'You have stored {food} food units.')
+                print (f'{deadcounts} ants died since the first day.')
 
-        #if it's not winter and we got enough food, reproduce!
-        if season != 'winter' and food > 0 and food >= len(colony):
-                i = 1
-                while i <= max_eggs:
-                        reproduce()
-                        i += 1
-        
-        #if food >= len(colony):
-        #        food -= len(colony)  # each ant must eat, yeah it's true in the reproduction phase the queen already ate, but it's ok, she needs a lot of food
-        #else:
-        #        food = 0 # this check prevents the food goes negative
         day += 1
-        #print (f'Day {day}, workers: {act_workers}, soldiers: {act_soldiers}, food: {food}.\n {colony}')
 
-for this_ant in colony:
-        if this_ant.type == 'worker':
-                workers += 1
-        elif this_ant.type == 'soldier':
-                soldiers += 1
-        elif this_ant.type == 'queen':
-                queens += 1
-        if this_ant.gender == 'm':
-                males += 1
-        elif this_ant.gender == 'f':
-                females += 1
+
 
 if len(colony) != 0:
-        print ('Colony summary:')
+        print ('\n***Colony summary***')
         print (f'Your colony successfully survived for {day-1} days.')
-        print (f'{queens} queens succeeded.')
-        print (f'You got {workers} workers.')
-        print (f'You got {soldiers} soldiers.')
-        print (f'You got {males} males.')
-        print (f'You got {females} females.')
-        print (f'You got {food} food units.')
-        print (f'{deadcounts} ants died since the first day.')
-print (f'You got a total of {id} ants since the beginning.')
-
-
-        
+        print (f'{tot_queens} queens succeeded.')
+        print (f'You have a queen and {len(colony)} ants:')
+        print (f'{tot_workers} workers.')
+        print (f'{tot_soldiers} soldiers.')
+        print (f'{tot_males} are males and {tot_females} are female.')
+        print (f'You have stored {food} food units.')
+        print (f'\n{deadcounts} ants died since the first day.')
+print (f'You got a total of {id} ants since the beginning.')        

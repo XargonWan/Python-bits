@@ -1,7 +1,11 @@
-import random
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2021-present Xargon (https://github.com/XargonWan)
+# WARNING: This code may be funny (sometimes... not really)
 
-# TODO: add food availability: normal, scarse, starvation
-# TODO: add casualties (humans, predators, weather)
+# BUG: are we sure that winter is working correctly?
+# TODO: finish the events
+
+import random # no, it's not importing a random module, it's importing THE random module
 
 id = 0 # ant's ID starts from 0 and goes on
 colony = [] # list of ants in the colony
@@ -23,7 +27,10 @@ act_females = 0
 # OPTIONS
 food = 10 # starting food
 max_eggs = 100 # max eggs layable per day
-season = 'spring' # starting season
+
+# These variables are initialized later but editor is anoying
+enviro = ""
+enviro_id = 0
 
 
 class ant: 
@@ -75,11 +82,12 @@ class queen(ant):
                 global act_queens
                 global actual_queen
                 global deadcounts
+                global day
                 deadcounts += 1
                 actual_queen = ""
                 act_queens -= 1
                 colony.remove(self)
-                #print(f'The queen is dead today, long live the new queen!') #DEBUG
+                print ('Day {day}, the queen is dead. Long live the queen!')
                 
 
 class soldier(ant):
@@ -147,46 +155,94 @@ def reproduce():
                 # if the queen is dead and we have enough food we grow a new queen and we feed her
                 if food >= 1:
                         colony.append(queen())
-                        #for ant in colony:
-                        #        if ant.type == 'queen':
-                        #                actual_queen = ant
                         actual_queen.eat()
         elif season != 'winter' and food >= len(colony)-1: #if it's not winter and we got enough food, reproduce!
                 i = 1
-                #print(f'DEBUG: Giorno {day}, non è inverno e abbiamo {food} cibo, i={i}')
                 while i <= (max_eggs - len(colony)-1):    # we want to make sure that we don't consume tomorrow's food
                         if random.randint(1,100) <= 70 or not any(isinstance(ant, worker) for ant in colony): # let's cast a percentage and see which type of ant is to be born
                                 colony.append(worker())
                                 actual_queen.eat()
-                                #print(f'Creo worker, cibo {food}, max eggs {max_eggs}, i={i}')
                         else:
                                 colony.append(soldier())
                                 actual_queen.eat()
-                                #print(f'Creo soldier, cibo {food}, max eggs {max_eggs}, i={i}')
                         i += 1
+
+def event():
+
+        #this function will be used to generate random events, now is empty
+        global enviro_id
+        global enviro
+        
+        # easter egg case
+        if enviro_id == 0 :
+                colony = ""
+                print(f'Your colony is erease from the actual time continuum cause by BETA class interference in {enviro[enviro_id]}')
+        
+        # terrarium case
+        elif enviro_id == 1 :
+                # human forgot to feed (low)
+                return # remove
+        
+        # garden case
+        elif enviro_id == 2 :
+                # human step (low)
+                # dog destroyed (low)
+                # insect attack (low)
+                # rain (medium)
+                return # remove
+        
+        # forest case
+        elif enviro_id == 3 :
+                # rival antnest (low)
+                # insect attack (low)
+                # rain (medium)
+                return # remove
+        
+        # desert case
+        elif enviro_id == 4 :
+                # no food today (high)
+                # insect attack (low)
+                return # remove
+
+        return # remove
 
 
 print ("Welcome to your ant colony.")
-total_days = int(input('For how many days you want to run the simulation? '))
-day = 1 # we start from the day number 1
-daycount = 0 # initializing counter fos seasons
-colony.append(queen())
 
-# DEBUG Lines
-#print (f'\nDEBUG: Simulation started')
-#print (f'You have {len(colony)} ants:')
-#print (f'{act_workers} workers.')
-#print (f'{act_soldiers} soldiers.')
-#print (f'You have {food} food units.')
-#print (f'{deadcounts} ants died since the first day.')
-# END DEBUG Lines
+# INIT Days
+total_days = int(input('For how many days you want to run the simulation? (Default: 20)\n') or 20)
+while type(total_days) != int:
+        total_days = input('Please enter a valid number of days: ') or 20
+
+# INIT Season
+season = str(input("From which season you want to start? (Default: spring)\n")).lower() or "spring"
+while season not in ['spring','winter','summer','autumn','fall']:
+        season = str(input("Sorry, it doesn't seem a vaild season on the earth, try again:\n")).lower() or "spring"
+        if season == "fall":
+                season = "autumn"
+
+# INIT Environment
+enviro = ["space-time pocket (Sector 01 Alpha-3)","terrarium","garden","forest","desert"]
+enviro_id = int(input(f"In which environment you want to start to build your colony? (Default Garden)\n\
+1 - {enviro[1]}\n\
+2 - {enviro[2]}\n\
+3 - {enviro[3]}\n\
+4 - {enviro[4]}\n\
+Choice: ") or "2")
+while enviro_id not in [1,2,3,4]:
+        enviro_id = input('Please select a vaild environment by typing its number: ') or 20
+
+day = 1 # we start from the day number 1
+daycount = 0 # initializing counter for seasons
+colony.append(queen())
 
 while day <= total_days:
 
         # it's a new day
         daycount += 1
 
-        print (f'\nDEBUG: Day {day} resume:')
+        if total_days <= 20:
+                print (f'\nDay {day} resume:')
 
         # if there are no more ants the colony is over
         if len(colony) <= 0: 
@@ -207,11 +263,6 @@ while day <= total_days:
 
         # now let's check the status of all the ants of the colony        
         for this_ant in colony:
-
-                #DEBUG
-                #if this_ant.type == 'queen':
-                #        print(f'Queen starving: {this_ant.starving}, life: {this_ant.life} HP')
-                #DEBUG
                 
                 # check if this ant is still alive
                 if this_ant.starving >= 15 or this_ant.life == 0:
@@ -238,11 +289,9 @@ while day <= total_days:
 
         day += 1
 
-
-
 if len(colony) != 0:
-        print ('\n***Colony summary***')
-        print (f'Your colony successfully survived for {day-1} days.')
+        print ('\n*** COLONY SUMMARY ***')
+        print (f'Your colony successfully survived for {day-1} days in a {enviro[enviro_id]}.') # replace "enviro_id" with "0" for an easter egg
         print (f'{tot_queens} queens succeeded.')
         print (f'You have a queen and {len(colony)} ants:')
         print (f'{tot_workers} workers.')
@@ -250,4 +299,6 @@ if len(colony) != 0:
         print (f'{tot_males} are males and {tot_females} are female.')
         print (f'You have stored {food} food units.')
         print (f'\n{deadcounts} ants died since the first day.')
-print (f'You got a total of {id} ants since the beginning.')        
+print (f'You got a total of {id} ants since the beginning.')
+
+#kthxbye

@@ -3,19 +3,22 @@
 # WARNING: This code may be funny (sometimes... not really)
 
 # BUG: are we sure that winter is working correctly?
-# TODO: finish the events
+# TODO: events engine should work now, add more events
 
 import random # no, it's not importing a random module, it's importing THE random module
 
 id = 0 # ant's ID starts from 0 and goes on
 colony = [] # list of ants in the colony
+
+# "Total" counters
 tot_queens = 0
 tot_workers = 0
 tot_soldiers = 0
 tot_males = 0
 tot_females = 0
-deadcounts = 0
-actual_queen = ""
+events = []
+deadcounts = 0 # casualties
+actual_queen = "" # shortcut to have the actual queen without searching the list every time
 
 # "Actual" counters
 act_workers = 0
@@ -25,10 +28,10 @@ act_males = 0
 act_females = 0
 
 # OPTIONS
-food = 10 # starting food
+food = 10 # starting food, if too low the queen will die QQ
 max_eggs = 100 # max eggs layable per day
 
-# These variables are initialized later but editor is anoying
+# These variables are actually initialized later but editor is anoying
 enviro = ""
 enviro_id = 0
 
@@ -169,19 +172,32 @@ def reproduce():
 
 def event():
 
-        #this function will be used to generate random events, now is empty
+        # This function returns true if an event is happend and evaluate the happening
+
         global enviro_id
         global enviro
+        global day
+        global food
+        global events
         
         # easter egg case
         if enviro_id == 0 :
                 colony = ""
-                print(f'Your colony is erease from the actual time continuum cause by BETA class interference in {enviro[enviro_id]}')
+                evt_text = f'Your colony is erease from the actual time continuum cause by BETA class interference in {enviro[enviro_id]}'
+                print(evt_text)
+                events.append(f'Day {day}: ' + evt_text)
         
         # terrarium case
         elif enviro_id == 1 :
-                # human forgot to feed (low)
-                return # remove
+                
+                # EVENT 1: human forgot to feed (low)
+                if random.randint(1,100) >= 95:
+                        evt_text = f'The human forgot to feed the ants, you got {food} food units.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        return True   
+                else:
+                        return False
         
         # garden case
         elif enviro_id == 2 :
@@ -207,12 +223,15 @@ def event():
         return # remove
 
 
-print ("Welcome to your ant colony.")
+print ("\nWELCOME TO YOUR ANT COLONY\n")
 
 # INIT Days
-total_days = int(input('For how many days you want to run the simulation? (Default: 20)\n') or 20)
-while type(total_days) != int:
-        total_days = input('Please enter a valid number of days: ') or 20
+while True:
+        try:
+                total_days = int(input('For how many days you want to run the simulation? (Default: 20)\n') or 20)
+                break
+        except:
+                print('Please enter a valid number of days.')
 
 # INIT Season
 season = str(input("From which season you want to start? (Default: spring)\n")).lower() or "spring"
@@ -223,12 +242,12 @@ while season not in ['spring','winter','summer','autumn','fall']:
 
 # INIT Environment
 enviro = ["space-time pocket (Sector 01 Alpha-3)","terrarium","garden","forest","desert"]
-enviro_id = int(input(f"In which environment you want to start to build your colony? (Default Garden)\n\
+enviro_id = int(input(f"In which environment you want to start to build your colony? (Default Garden)\n\n\
 1 - {enviro[1]}\n\
 2 - {enviro[2]}\n\
 3 - {enviro[3]}\n\
 4 - {enviro[4]}\n\
-Choice: ") or "2")
+\nChoice: ") or "2")
 while enviro_id not in [1,2,3,4]:
         enviro_id = input('Please select a vaild environment by typing its number: ') or 20
 
@@ -261,16 +280,22 @@ while day <= total_days:
                         season = 'spring'
                 daycount = 0
 
+        # food gathering, but not in winter and we check for events first
+        if event() == False and season != 'winter' :           
+        #if this_ant.type == "worker" and season != 'winter':
+                food_collected = act_workers * random.randint(0,3)
+                if total_days <= 20:
+                        print(f'Food collected today: {food_collected}')
+                food += food_collected
+        else:   #debug
+                print(f'DEBUG day {day}: no food gathered')
+
         # now let's check the status of all the ants of the colony        
         for this_ant in colony:
                 
                 # check if this ant is still alive
                 if this_ant.starving >= 15 or this_ant.life == 0:
                         this_ant.die()
-
-                # tot_workers will be working, ecept in winter                
-                if this_ant.type == "worker" and season != 'winter':
-                        food += random.randint(0,3)
 
                 # daily meal        
                 this_ant.eat()
@@ -281,24 +306,32 @@ while day <= total_days:
         reproduce()
 
         if total_days <= 20:
-                print (f'You have a queen and {len(colony)} ants:')
-                print (f'{act_workers} workers.')
-                print (f'{act_soldiers} soldiers.')
-                print (f'You have stored {food} food units.')
-                print (f'{deadcounts} ants died since the first day.')
+                print (f'You have a queen and {len(colony)} ants:\n\
+{act_workers} workers.\n\
+{act_soldiers} soldiers.\n\
+You have stored {food} food units.\n\
+{deadcounts} ants died since the first day.')
 
         day += 1
 
 if len(colony) != 0:
-        print ('\n*** COLONY SUMMARY ***')
-        print (f'Your colony successfully survived for {day-1} days in a {enviro[enviro_id]}.') # replace "enviro_id" with "0" for an easter egg
-        print (f'{tot_queens} queens succeeded.')
-        print (f'You have a queen and {len(colony)} ants:')
-        print (f'{tot_workers} workers.')
-        print (f'{tot_soldiers} soldiers.')
-        print (f'{tot_males} are males and {tot_females} are female.')
-        print (f'You have stored {food} food units.')
-        print (f'\n{deadcounts} ants died since the first day.')
-print (f'You got a total of {id} ants since the beginning.')
+        print (f'\n*** COLONY SUMMARY ***\n\n\
+Your colony successfully survived for {day-1} days in a {enviro[enviro_id]}.\n\
+{tot_queens} queens succeeded.\n\
+You have a queen and {len(colony)} ants:\n\
+{tot_workers} workers.\n\
+{tot_soldiers} soldiers.\n\
+{tot_males} are males and {tot_females} are female.\n\
+You have stored {food} food units.\n\
+\n\
+{deadcounts} ants died since the first day.\n\
+You got a total of {id} ants since the beginning.')
 
+if len(events) > 0 :
+        print (f'\n{len(events)} events happened:')
+        for ievt in events :
+                print(ievt)
+
+print()
+# replace "enviro_id" with "0" for an easter egg
 #kthxbye

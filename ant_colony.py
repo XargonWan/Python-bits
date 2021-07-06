@@ -3,7 +3,6 @@
 # WARNING: This code may be funny (sometimes... not really)
 
 # BUG: are we sure that winter is working correctly?
-# TODO: events engine should work now, add more events
 
 import random # no, it's not importing a random module, it's importing THE random module
 
@@ -170,7 +169,7 @@ def reproduce():
                                 actual_queen.eat()
                         i += 1
 
-def event():
+def event(evt):
 
         # This function returns true if an event is happend and evaluate the happening
 
@@ -179,6 +178,8 @@ def event():
         global day
         global food
         global events
+        global food_collected
+        global colony
         
         # easter egg case
         if enviro_id == 0 :
@@ -190,37 +191,189 @@ def event():
         # terrarium case
         elif enviro_id == 1 :
                 
-                # EVENT 1: human forgot to feed (low)
-                if random.randint(1,100) >= 95:
+                # EVENT 1.1: human forgot to feed (low)
+                if evt >= 95:
                         evt_text = f'The human forgot to feed the ants, you got {food} food units.'
                         print(evt_text)
                         events.append(f'Day {day}: ' + evt_text)
                         return True   
-                else:
-                        return False
+               
+                return False
         
         # garden case
         elif enviro_id == 2 :
-                # human step (low)
-                # dog destroyed (low)
-                # insect attack (low)
-                # rain (medium)
-                return # remove
+
+                # EVENT 2.1: human steps on the ants (5 - low)
+                if evt >= 95:
+                        died = random.randint(1,15)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        evt_text = f'A human stepped on some ants, you lost {died} ants.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        food_collected = act_workers * random.randint(0,3)
+                        return True 
+                
+                # EVENT 2.2: dog plays with ant nest (5 - low)
+                if evt <= 94 and evt >= 89:
+                        died = random.randint(1,50)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        evt_text = f'A dog played with your ant nest, you lost {died} ants.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        food_collected = act_workers * random.randint(0,3)
+                        return True
+
+                # EVENT 2.3: inset attacked your ants (5 - low)
+                if evt >= 82 and evt <= 88:
+                        died = random.randint(1,25)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        insectbody = random.randint(10,30)
+                        evt_text = f'An insect attacked your ants that killed it but {died} ants died, you gathered the insect\'s body that gave your colony {insectbody} food units.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        food_collected = act_workers * random.randint(0,3) + insectbody # ants gathered the insect body
+                        return True
+                
+                # EVENT 2.3: rain (10 - medium)
+                if evt >= 71 and evt <= 81:
+                        died = random.randint(0,7)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        evt_text = f'Today rained, you lost {died} ants and you didn\'t gathered any food.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        return True
+                
+                return False
         
         # forest case
         elif enviro_id == 3 :
-                # rival antnest (low)
-                # insect attack (low)
-                # rain (medium)
-                return # remove
+
+                # EVENT 3.1: rival ant nest (5 - low)
+                if evt >= 95 and evt <= 100:
+                        died = random.randint(1,25)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        food_collected = act_workers * random.randint(0,1)
+                        evt_text = f'Your ants fought with a rival ant nest, {died} ants died. You food gatheriing was lower than expetation: only {food_collected} food units.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        return True
+
+                # EVENT 3.1: inset attacked your ants (5 - low)
+                if evt >= 89 and evt <= 94:
+                        died = random.randint(1,25)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        insectbody = random.randint(10,30)
+                        evt_text = f'An insect attacked your ants that killed it but {died} ants died, you gathered the insect\'s body that gave your colony {insectbody} food units.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        food_collected = act_workers * random.randint(0,3) + insectbody # ants gathered the insect body
+                        return True
+                
+                # EVENT 3.2: rain (10 - medium)
+                if evt >= 78 and evt <= 88:
+                        died = random.randint(0,7)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        evt_text = f'Today rained, you lost {died} ants and you didn\'t gathered any food.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        return True
+                
+                return False
         
         # desert case
         elif enviro_id == 4 :
-                # no food today (high)
-                # insect attack (low)
-                return # remove
 
-        return # remove
+                # EVENT 4.1: no food today (20 - high)
+                if evt >= 80 and evt <= 100:
+                        evt_text = f'You couldn\'t find any food today.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        return True
+
+                # EVENT 4.2: inset attacked your ants (5 - low)
+                if evt >= 74 and evt <= 79:
+                        died = random.randint(1,25)
+                        i = 1
+                        while i < died:
+                                this_ant = random.choice(colony)
+                                while this_ant.type == 'queen':
+                                        if len(colony) > 1:
+                                                this_ant = random.choice(colony)
+                                        else:
+                                                return False
+                                this_ant.die()
+                                i += 1
+                        insectbody = random.randint(10,30)
+                        evt_text = f'An insect attacked your ants that killed it but {died} ants died, you gathered the insect\'s body that gave your colony {insectbody} food units.'
+                        print(evt_text)
+                        events.append(f'Day {day}: ' + evt_text)
+                        food_collected = act_workers * random.randint(0,3) + insectbody # ants gathered the insect body
+                        return True
+
+        return False
 
 
 print ("\nWELCOME TO YOUR ANT COLONY\n")
@@ -269,6 +422,7 @@ while day <= total_days:
                 break
 
         # let's check the season
+        # this can be done by a math formula for sure, but I didn't figured out yet
         if daycount == 90:
                 if season == 'spring':
                         season = 'summer'
@@ -281,14 +435,14 @@ while day <= total_days:
                 daycount = 0
 
         # food gathering, but not in winter and we check for events first
-        if event() == False and season != 'winter' :           
+        if event(random.randint(1,100)) == False and season != 'winter' :           
         #if this_ant.type == "worker" and season != 'winter':
                 food_collected = act_workers * random.randint(0,3)
                 if total_days <= 20:
                         print(f'Food collected today: {food_collected}')
                 food += food_collected
-        else:   #debug
-                print(f'DEBUG day {day}: no food gathered')
+        #else:   #debug
+                #print(f'DEBUG day {day}: no food gathered')
 
         # now let's check the status of all the ants of the colony        
         for this_ant in colony:
@@ -319,18 +473,22 @@ if len(colony) != 0:
 Your colony successfully survived for {day-1} days in a {enviro[enviro_id]}.\n\
 {tot_queens} queens succeeded.\n\
 You have a queen and {len(colony)} ants:\n\
-{tot_workers} workers.\n\
-{tot_soldiers} soldiers.\n\
-{tot_males} are males and {tot_females} are female.\n\
+{act_workers} workers.\n\
+{act_soldiers} soldiers.\n\
+{act_males} are males and {act_females} are female.\n\
 You have stored {food} food units.\n\
 \n\
 {deadcounts} ants died since the first day.\n\
-You got a total of {id} ants since the beginning.')
+You got a total of {id} ants since the beginning:\n\
+{tot_workers} workers.\n\
+{tot_soldiers} soldiers.\n\
+{tot_males} are males and {tot_females} are female.')
 
 if len(events) > 0 :
-        print (f'\n{len(events)} events happened:')
-        for ievt in events :
-                print(ievt)
+        choice = str(input(f'\n{len(events)} events happened, do you want to see a list? (y/n): ')).lower()
+        if choice == 'y':
+                for ievt in events :
+                        print(ievt)
 
 print()
 # replace "enviro_id" with "0" for an easter egg
